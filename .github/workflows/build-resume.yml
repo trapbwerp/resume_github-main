@@ -24,12 +24,12 @@ jobs:
       run: |
         docker run --rm \
           -v ${{ github.workspace }}:/workspace \
-          -v ${{ github.workspace }}/output:/output \
-          resume-builder sh -c "
-            ./build.sh && \
-            cp resume.pdf /output/ 2>/dev/null || echo 'PDF not found in workspace, checking current dir' && \
-            find . -name '*.pdf' -exec cp {} /output/ \;
-          "
+          resume-builder
+        
+    - name: Copy PDF to output
+      run: |
+        cp resume.pdf output/ || echo "PDF file not found"
+        ls -la .
     
     - name: Upload PDF artifact
       uses: actions/upload-artifact@v4
