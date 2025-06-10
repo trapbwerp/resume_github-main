@@ -1,0 +1,53 @@
+name: Build Resume
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Build Docker image
+      run: docker build -t resume-builder .
+      
+    - name: Create output directory
+      run: mkdir -p output
+      
+    - name: Build resume PDF
+      run: |
+        docker run --rm \
+          -v ${{ github.workspace }}:/workspace \
+          -v ${{ github.workspace }}/output:/output \
+          resume-builder sh -c "
+            ./build.sh && \
+            cp resume.pdf /output/ 2>/dev/null || echo 'PDF not found in workspace, checking current dir' && \
+            find . -name '*.pdf' -exec cp {} /output/ \;
+          "
+    
+    - name: Upload PDF artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: resume-pdf
+        path: output/resume.pdf
+        retention-days: 30
+        
+    - name: Check build result
+      run: |
+        if [ -f output/resume.pdf ]; then
+          echo "✅ Resume PDF built successfully!"
+          echo "📊 File size: $(du -h output/resume.pdf | cut -f1)"
+          echo "📄 File info:"
+          ls -la output/resume.pdf
+        else
+          echo "❌ Failed to build resume PDF"
+          echo "📁 Contents of output directory:"
+          ls -la output/ || echo "Output directory is empty"
+          exit 1
+        fi 
